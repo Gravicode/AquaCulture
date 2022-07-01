@@ -24,6 +24,7 @@ internal class Program
         //modbusClient.MqttRetainMessages = true;
         //Connect to the ModbusTCP Server
         modbusClient.Connect();
+        var gatewayID = ConfigurationManager.AppSettings["GatewayID"];
         while (true)
         {
             // We read two registers from the Server, and Publish them to the MQTT-Broker. By default Values will be published
@@ -38,7 +39,7 @@ internal class Program
             bool[] coils = modbusClient.ReadCoils(10, 10);
             foreach(var num in coils)
                 Console.WriteLine($"read = {num}");
-            mqtt.SendTelemetry(DeviceID, coils, holdingRegister);
+            mqtt.SendTelemetry(DeviceID, gatewayID, coils, holdingRegister);
             System.Threading.Thread.Sleep(DelayTime);
         }
         modbusClient.Disconnect();

@@ -82,11 +82,11 @@ namespace AquaCulture.Gateway
             //}
         }
         // Invoke the direct method on the device, passing the payload
-        public Task SendTelemetry(string DeviceId,  bool[] Coils, int[] Registers)
+        public Task SendTelemetry(string DeviceId,string GatewayId,  bool[] Coils, int[] Registers)
         {
             Console.WriteLine($"ID -> {DeviceId}");
             return Task.Factory.StartNew(() => {
-                var action = new DeviceTwin() { DeviceId = DeviceId,  Coils= Coils, Registers = Registers};
+                var action = new DeviceTwin() { DeviceId = DeviceId, GatewayId=GatewayId,  Coils= Coils, Registers = Registers};
 
                 SendCommand(JsonSerializer.Serialize(action));
             });
