@@ -1,0 +1,110 @@
+﻿@page "/viewqr"
+@inject IJSRuntime jsRuntime
+@inject NavigationManager NavMgr
+@inject IJSRuntime JSRuntime
+@inject IToastService toastService
+
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+@using Microsoft.EntityFrameworkCore
+@using System.IO
+@using Microsoft.AspNetCore.WebUtilities
+@using ZXing.QrCode
+@using System.Drawing
+@using System.Drawing.Imaging
+
+<div class="row mt-2">
+    <div class="col-lg">
+        <h2>Lihat QR Code Saham</h2>
+    </div>
+</div>
+<div class="row mt-2">
+    <div class="col-lg">
+        <h4>
+            QR DATA:
+            @KodeQR
+        </h4>
+    </div>
+</div>
+
+<div class="row mt-2">
+    <div class="col-lg-4">
+        <img src="@QRImage" ID="ImageQR" />
+    </div>
+</div>
+<div class="row mt-2">
+    <div class="col-lg-4">
+        <div class="alert alert-success">
+            Silakan gambar diatas disimpan.
+        </div>
+    </div>
+</div>
+<div class="row mt-2">
+    <div class="col-lg-4">
+        <button ID="BtnBack" @onclick="BtnBack_Click" class="btn btn-info" >@BtnBack</button> 
+    </div>
+</div>
+@code {
+    public string QRImage { get; set; }
+    public string BtnBack { get; set; } = "Kembali";
+    public string QRData { get; set; }
+    public string KodeQR { get; set; }
+    public string sourceUrl { set; get; } 
+    void BtnBack_Click()
+    {
+        if (string.IsNullOrEmpty(sourceUrl))
+        {
+            toastService.ShowError( "Tidak dapat kembali ke halaman sebelumnya.");
+        }
+        else
+        {
+            NavMgr.NavigateTo(sourceUrl);
+        }
+
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        var param1 = string.Empty;
+        var uri = NavMgr.ToAbsoluteUri(NavMgr.Uri);
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("qrcode", out var paramCount))
+        {
+            param1 = paramCount;
+
+        }
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("source", out var paramCount2))
+        {
+            sourceUrl = paramCount2;
+        }
+
+        if (string.IsNullOrEmpty(param1))
+        {
+            toastService.ShowError( "Pembelian saham tidak ditemukan. QR tidak dapat ditampilkan.");
+        }
+        else
+        {
+            QRData = param1;
+            KodeQR = param1;//QRData.Replace(AppConstants.CheckQRUrl,string.Empty);
+            var qr = new ZXing.BarcodeWriter();
+            var options = new QrCodeEncodingOptions
+            {
+                DisableECI = true,
+                CharacterSet = "UTF-8",
+                Width = 200,
+                Height = 200,
+            };
+            qr.Options = options;
+            qr.Format = ZXing.BarcodeFormat.QR_CODE;
+
+            var FilePath = Path.GetTempPath() + "/" + Guid.NewGuid().ToString().Replace("-", "_") + ".jpg";
+
+            var result = new Bitmap(qr.Write(QRData));
+            result.Save(FilePath, ImageFormat.Jpeg);
+
+            var temp = File.ReadAllBytes(FilePath);
+            string base64String = Convert.ToBase64String(temp, 0, temp.Length);
+            QRImage = "data:image/png;base64," + base64String;
+            //ImageQR.ImageUrl = "/handlers/imageloader.ashx?ImgPath=" + FilePath;
+
+        }
+
+    }
+}

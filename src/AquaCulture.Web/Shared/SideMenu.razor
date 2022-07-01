@@ -1,0 +1,113 @@
+﻿<nav class="sidenav shadow-right @(IsDark ? "sidenav-dark":"sidenav-light")">
+    <div class="sidenav-menu">
+        <div class="nav accordion" id="accordionSidenav">
+            <!-- Sidenav Menu Heading (Account)-->
+            <!-- * * Note: * * Visible only on and above the sm breakpoint-->
+            <div class="sidenav-menu-heading d-sm-none">Akun</div>
+            <!-- Sidenav Link (Alerts)-->
+            <!-- * * Note: * * Visible only on and above the sm breakpoint-->
+            <a class="nav-link d-sm-none" href="#!">
+                <div class="nav-link-icon"><i data-feather="bell"></i></div>
+                Notifikasi
+                <span class="badge bg-warning-soft text-warning ms-auto">(0) kosong</span>
+            </a>
+            <!-- Sidenav Link (Messages)-->
+            <!-- * * Note: * * Visible only on and above the sm breakpoint-->
+            <a class="nav-link d-sm-none" href="#!">
+                <div class="nav-link-icon"><i data-feather="mail"></i></div>
+                Pesan
+                <span class="badge bg-success-soft text-success ms-auto">(0) kosong</span>
+            </a>
+            <!-- Sidenav Menu Heading -->
+            <div class="sidenav-menu-heading">Umum</div>
+            <!-- Sidenav Accordion (one)-->
+            <a class="nav-link collapsed" href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                <div class="nav-link-icon"><i data-feather="activity"></i></div>
+                Master Data
+                <div class="sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+            </a>
+            <div class="collapse" id="collapseOne" data-bs-parent="#accordionSidenav">
+                <nav class="sidenav-menu-nested nav accordion" id="accordionSidenavPages">
+                    <a class="nav-link" href="/">Beranda</a>
+                    <a class="nav-link" href="/Master/UsahaBersama">Data Usaha</a>
+                    <a class="nav-link" href="/Master/PembelianSaham">Data Pembelian Saham</a>
+                    <a class="nav-link" href="/Master/COA">Data COA</a>
+                    <a class="nav-link" href="/master/UserProfile">Data Anggota</a>
+                </nav>
+            </div>
+            <!-- Sidenav Accordion (two)-->
+            <a class="nav-link collapsed" href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                <div class="nav-link-icon"><i data-feather="activity"></i></div>
+                Transaksi
+                <div class="sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+            </a>
+            <div class="collapse" id="collapseTwo" data-bs-parent="#accordionSidenav">
+                <nav class="sidenav-menu-nested nav accordion" id="accordionSidenavPages">
+                    
+                    <a class="nav-link" href="/transaction/jurnal">Data Jurnal</a>
+                </nav>
+            </div>
+
+             <!-- Sidenav Accordion (three)-->
+            <a class="nav-link collapsed" href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                <div class="nav-link-icon"><i data-feather="activity"></i></div>
+                Laporan
+                <div class="sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+            </a>
+            <div class="collapse" id="collapseThree" data-bs-parent="#accordionSidenav">
+                <nav class="sidenav-menu-nested nav accordion" id="accordionSidenavPages">
+                    <a class="nav-link" href="/report/LaporanSaham">Laporan Data Saham</a>
+                    <a class="nav-link" href="/report/LaporanUB">Laporan Proporsi Saham UB</a>
+                    
+                </nav>
+            </div>
+
+              <!-- Sidenav Accordion (Four)-->
+            <a class="nav-link collapsed" href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                <div class="nav-link-icon"><i data-feather="activity"></i></div>
+                Kerjasama
+                <div class="sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+            </a>
+            <div class="collapse" id="collapseFour" data-bs-parent="#accordionSidenav">
+                <nav class="sidenav-menu-nested nav accordion" id="accordionSidenavPages">
+                    <a class="nav-link" href="/master/ProposalUsaha">Proposal Usaha</a>
+              
+                    
+                </nav>
+            </div>
+        </div>
+    </div>
+    <!-- Sidenav Footer-->
+    <div class="sidenav-footer">
+        <div class="sidenav-footer-content">
+            <div class="sidenav-footer-subtitle">Masuk sebagai:</div>
+            <div class="sidenav-footer-title">@Nama</div>
+        </div>
+    </div>
+</nav>
+@code {
+    [Parameter]
+    public bool IsDark { set; get; } = false;
+    
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    UserProfileService Userservice;
+    string Nama = "Saya";
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (Userservice == null) Userservice = new UserProfileService();
+        var user = (await authenticationStateTask).User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            var UserName = user.Identity.Name;
+            var usr = Userservice.GetUserByEmail(UserName);
+            Nama = usr?.FullName;
+
+        }
+    }
+
+  
+
+}

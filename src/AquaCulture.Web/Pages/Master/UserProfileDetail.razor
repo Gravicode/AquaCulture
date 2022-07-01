@@ -1,0 +1,161 @@
+﻿@inject IJSRuntime jsRuntime
+@using AquaCulture.Tools
+@using AquaCulture.Web.Helpers
+@using AquaCulture.Models
+@using AquaCulture.Web.Data
+@inject NavigationManager NavMgr
+@namespace AquaCulture.Web.Pages.Master
+@inject IToastService toastService
+@using System.IO
+@inject AzureBlobHelper blob
+
+<div class="modal" tabindex="-1" role="dialog" id="taskModal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@CustomHeader</h5>
+
+
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <EditForm Model="@TaskObject" OnValidSubmit="@HandleValidSubmit">
+                    <DataAnnotationsValidator />
+
+                    <div class="form-group">
+                        <label for="fullname"><b>Nama Lengkap</b></label>
+                        <input type="hidden" @bind-value="@TaskObject.Id" />
+                        <input @bind="TaskObject.FullName" type="text" class="form-control" id="txtNama" placeholder="Nama">
+                        <ValidationMessage For="@(() => TaskObject.FullName)" />
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="email"><b>Email (username)</b></label>
+                        <input @bind="TaskObject.Email" type="text" class="form-control" id="txtEmail" placeholder="Email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone"><b>Telepon</b></label>
+                        <input @bind="TaskObject.Phone" type="text" class="form-control" id="txtNoHp" placeholder="No Hp">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="alamat"><b>Alamat</b></label>
+                        <textarea @bind="TaskObject.Alamat" class="form-control" id="txtAlamat" placeholder="Alamat"></textarea>
+                    </div>
+
+                     <div class="form-group">
+                        <label for="dapukan">Dapukan UB</label>
+                        <select @bind="@TaskObject.Role" id="dapukan">
+                            <option value="-">Pilih</option>
+                            <option value="@Roles.User">@Roles.User.ToString()</option>
+                            <option value="@Roles.Operator">@Roles.Operator.ToString()</option>
+@*                            @foreach (Roles item in Enum.GetValues(typeof(Roles)))
+                            {
+                                <option value="@item">@item.ToString()</option>
+
+                            }*@
+                        </select>
+                        <ValidationMessage For="@(() => TaskObject.Role)" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nim">Upload Foto</label>
+                        @if (!string.IsNullOrEmpty(FileUrl))
+                        {
+                            <div class="alert alert-info">Foto sudah di upload.</div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning"> pilih foto Anda lalu tunggu sampai file selesai di upload.</div>
+                        }
+                        <BlazorInputFile.InputFile OnChange="HandleFileSelected" />
+
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </EditForm>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    string RetypePass;
+    public string FileUrl { get; set; }
+    [Parameter]
+    public RenderFragment CustomHeader { get; set; }
+    [Parameter]
+    public UserProfile TaskObject { get; set; }
+    [Parameter]
+    public Action DataChanged { get; set; }
+    UserProfileService service;
+    protected override async Task OnInitializedAsync()
+    {
+        if (service == null) service = new UserProfileService();
+        FileUrl = TaskObject.PicUrl;
+    }
+    private async void HandleValidSubmit()
+    {
+        if (string.IsNullOrEmpty( TaskObject.Email))
+        {
+            toastService.ShowError("Email harus diisi sebagai username","perhatian");
+            return;
+        }
+
+        Encryption enc = new Encryption();
+        if (!string.IsNullOrEmpty(FileUrl))
+            TaskObject.PicUrl = FileUrl;
+        if (TaskObject.Id == 0)
+        {
+            TaskObject.Username = TaskObject.Email;
+            if (service.IsUserExists(TaskObject.Username))
+            {
+                toastService.ShowError("User dengan email ini sudah terdaftar","perhatian");
+                return;
+            }
+            TaskObject.Password = enc.Encrypt(AppConstants.DefaultPass);
+            var hasil = service.InsertData(TaskObject);
+            if (!hasil)
+            {
+                toastService.ShowError("Gagal menyimpan data. Isi data dengan lengkap.", "Perhatian");
+            }
+        }
+        else
+        {
+            service.UpdateData(TaskObject);
+        }
+
+        await CloseTaskModal();
+        DataChanged?.Invoke();
+    }
+    
+    async Task HandleFileSelected(IFileListEntry[] files)
+    {
+        var file = files.FirstOrDefault();
+        if (file != null)
+        {
+            // Just load into .NET memory to show it can be done
+            // Alternatively it could be saved to disk, or parsed in memory, or similar
+            var ms = new MemoryStream();
+            await file.Data.CopyToAsync(ms);
+             var bytes = ImageHelper.FixedSize(ms, 300, 300, false);
+            string newName = $"foto_{DateTime.Now.ToString("dd_MM_yyyy_HH_mm_ss")}_{file.Name}";
+            await AzureBlobHelper.UploadFile(newName, bytes);
+            FileUrl = $"https://storagemurahaje.blob.core.windows.net/portal-ub/{newName}";
+        }
+    }
+
+
+    private async Task CloseTaskModal()
+    {
+        await jsRuntime.InvokeAsync<object>("CloseModal", "taskModal");
+    }
+
+
+}

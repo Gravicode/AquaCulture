@@ -1,0 +1,25 @@
+﻿<div class="ml-auto" id="navbarMenu">
+    <ul class="navbar-nav text-sm-right">
+        <li class="nav-item ">
+            @if(FormName == "register"){
+                <button type="button" class="btn btn-sm btn-link cst-btn fw-alt ml-4 py-2 px-4" onclick="fw_open('/auth/login')">Login</button>
+                <button type="button" class="btn btn-sm btn-light shadow-sm px-3 active rounded-lg ml-4 py-2 px-4" onclick="fw_open('/auth/register')">Register</button>
+            }else{
+            <button type="button" class="btn btn-sm btn-light shadow-sm px-3 rounded-lg ml-4 py-2 px-4" onclick="fw_open('/auth/login')">Login</button>
+            <button type="button" class="btn btn-sm btn-light shadow-sm px-3 rounded-lg ml-4 py-2 px-4" onclick="fw_open('/auth/register')">Register</button>
+            }
+        </li>
+    </ul>
+</div>
+@code {
+    [CascadingParameter]
+    public string Slug { get; set; }
+
+    [Parameter]
+    public string FormName { set; get; } 
+
+    protected override async Task OnInitializedAsync()
+    {
+        FormName = Slug;
+    }
+}

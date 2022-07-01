@@ -1,0 +1,99 @@
+﻿@inject IJSRuntime jsRuntime
+@using System.IO
+@inject IToastService toastService
+@inject StreamRawDataService service
+@inject AzureBlobHelper blob;
+<div class="modal" tabindex="-1" role="dialog" id="taskModal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@CustomHeader</h5>
+
+
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <EditForm Model="@TaskObject" OnValidSubmit="@HandleValidSubmit">
+                    <DataAnnotationsValidator />
+
+                    <div class="form-group">
+                        <label for="DeviceID">DeviceID</label>
+                        <input type="hidden" @bind="@TaskObject.Id" />
+                        <input type="text" id="DeviceID" class="form-control" @bind="@TaskObject.DeviceId" />
+                        <ValidationMessage For="@(() => TaskObject.DeviceId)" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pic">Created Date</label>
+                        <input type="datetime" id="pic" class="form-control" @bind="@TaskObject.CreatedDate" />
+                        <ValidationMessage For="@(() => TaskObject.CreatedDate)" />
+                    </div>
+                    
+                     <div class="form-group">
+                        <label for="GatewayID">GatewayID</label>
+                        <input type="text" id="lokasi" class="form-control" @bind="@TaskObject.GatewayId" />
+                        <ValidationMessage For="@(() => TaskObject.GatewayId)" />
+                    </div>
+
+                  <div class="form-group">
+                        <label for="RawData">Raw Data</label>
+                        <textarea id="RawData" class="form-control" @bind="@TaskObject.RawData" />
+                        <ValidationMessage For="@(() => TaskObject.RawData)" />
+                    </div>
+
+                   
+
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </EditForm>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public RenderFragment CustomHeader { get; set; }
+    [Parameter]
+    public StreamRawData TaskObject { get; set; }
+    [Parameter]
+    public Action DataChanged { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+    }
+
+
+    private async void HandleValidSubmit()
+    {
+
+       
+        if (TaskObject.Id == 0)
+        {
+
+            var hasil = service.InsertData(TaskObject);
+            if (!hasil)
+            {
+                toastService.ShowError("Gagal menyimpan data. Isi data dengan lengkap.", "Perhatian");
+            }
+        }
+        else
+        {
+            service.UpdateData(TaskObject);
+        }
+
+        await CloseTaskModal();
+        DataChanged?.Invoke();
+    }
+   
+    private async Task CloseTaskModal()
+    {
+        await jsRuntime.InvokeAsync<object>("CloseModal", "taskModal");
+    }
+
+
+}

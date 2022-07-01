@@ -1,0 +1,124 @@
+﻿@inject IJSRuntime jsRuntime
+@using System.IO
+@inject IToastService toastService
+@inject GatewayService service
+@inject AzureBlobHelper blob;
+<div class="modal" tabindex="-1" role="dialog" id="taskModal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@CustomHeader</h5>
+
+
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <EditForm Model="@TaskObject" OnValidSubmit="@HandleValidSubmit">
+                    <DataAnnotationsValidator />
+
+                    <div class="form-group">
+                        <label for="GatewayID">GatewayID</label>
+                        <input type="hidden" @bind="@TaskObject.Id" />
+                        <input type="text" id="GatewayID" class="form-control" @bind="@TaskObject.GatewayId" />
+                        <ValidationMessage For="@(() => TaskObject.GatewayId)" />
+                    </div>
+
+                     <div class="form-group">
+                        <label for="Nama">Nama</label>
+                        <input type="text" id="Nama" class="form-control" @bind="@TaskObject.Nama" />
+                        <ValidationMessage For="@(() => TaskObject.Nama)" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pic">Tanggal Pasang</label>
+                        <input type="datetime" id="pic" class="form-control" @bind="@TaskObject.TanggalPasang" />
+                        <ValidationMessage For="@(() => TaskObject.TanggalPasang)" />
+                    </div>
+
+                     <div class="form-group">
+                        <label for="lokasi">Lokasi</label>
+                        <textarea id="lokasi" class="form-control" @bind="@TaskObject.Lokasi" />
+                        <ValidationMessage For="@(() => TaskObject.Lokasi)" />
+                    </div>  
+                    
+                    <div class="form-group">
+                        <label for="Cluster">Cluster</label>
+                        <input type="text" id="Cluster" class="form-control" @bind="@TaskObject.ClusterName" />
+                        <ValidationMessage For="@(() => TaskObject.ClusterName)" />
+                    </div>
+                    
+                      <div class="form-group">
+                        <label for="status">Status</label>
+                        <select @bind="@TaskObject.Status" id="status">
+                            <option value="-">Pilih</option>
+                            @foreach (DeviceStatus item in Enum.GetValues(typeof(DeviceStatus)))
+                            {
+                                <option value="@item">@item.ToString()</option>
+
+                            }
+                        </select>
+                        <ValidationMessage For="@(() => TaskObject.Status)" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ket">Keterangan </label>
+                        <textarea type="text" id="ket" class="form-control" @bind="@TaskObject.Keterangan" />
+                        <ValidationMessage For="@(() => TaskObject.Keterangan)" />
+                    </div>
+
+                   
+
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </EditForm>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public RenderFragment CustomHeader { get; set; }
+    [Parameter]
+    public Gateway TaskObject { get; set; }
+    [Parameter]
+    public Action DataChanged { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+    }
+
+
+    private async void HandleValidSubmit()
+    {
+
+       
+        if (TaskObject.Id == 0)
+        {
+
+            var hasil = service.InsertData(TaskObject);
+            if (!hasil)
+            {
+                toastService.ShowError("Gagal menyimpan data. Isi data dengan lengkap.", "Perhatian");
+            }
+        }
+        else
+        {
+            service.UpdateData(TaskObject);
+        }
+
+        await CloseTaskModal();
+        DataChanged?.Invoke();
+    }
+   
+    private async Task CloseTaskModal()
+    {
+        await jsRuntime.InvokeAsync<object>("CloseModal", "taskModal");
+    }
+
+
+}

@@ -1,0 +1,28 @@
+﻿@page "/report/LaporanStatistik"
+
+@inject IJSRuntime jsRuntime
+@using AquaCulture.Models
+@using AquaCulture.Web.Data
+@using AquaCulture.Tools
+@inject NavigationManager NavMgr
+@namespace NgajiOnline.Pages.Master
+@inject IToastService toastService
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+@using System.IO
+
+<h1>Laporan Statistik Kendaraan</h1>
+
+<div class="fw-table-block my-3 mx-md-0 mt-3 flex-fill mb-md-0 mx-3 fill-height">
+    <iframe width="1024" height="804" src="@AppConstants.LaporanStatistikUrl" frameborder="0" allowFullScreen="true"></iframe>
+</div>
+
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+
+
+
+    }
+
+}

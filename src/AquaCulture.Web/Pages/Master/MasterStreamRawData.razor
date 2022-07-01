@@ -1,0 +1,167 @@
+﻿@page "/master/StreamRawData"
+
+@inject IJSRuntime jsRuntime
+@inject NavigationManager NavMgr
+@inject IToastService toastService
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+
+
+@using System.IO
+<h1>Daftar StreamRawData</h1>
+
+<p>Gunakan halaman ini untuk melihat info StreamRawData.</p>
+
+@if (DataStreamRawData == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <body onbeforeunload="TestDataTablesRemove('#gridData')">
+        <div class="table-responsive">
+            <table id="gridData" name="gridData" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Jenis</th>
+                        <th>Lokasi</th>
+                        <th>Gateway</th>
+                        <th>Merek</th>
+                        <th>Actions</th>
+                    </tr>
+
+                </thead>
+                <tbody>
+                    @foreach (var item in DataStreamRawData)
+                    {
+                        <tr>
+                           
+                            <td>@item.CreatedDate?.ToString("dd/MMM/yyyy HH:mm")</td>
+                            <td>@item.DeviceId</td>
+                            <td>@item.GatewayId</td>
+                            <td><textarea rows="3" cols="30" @bind="item.RawData" readonly></textarea></td>
+                            <td>
+                                @if (HasLogin)
+                                {
+                                    <input type="button" class="btn btn-primary btn-sm mt-1" @onclick="(() => PrepareForEdit(item))" data-toggle="modal" data-target="#taskModal" value="Ubah" />
+                                    <input type="button" class="btn btn-danger btn-sm mt-1" @onclick="(() => PrepareForDelete(item))" data-toggle="modal" data-target="#confirmDeleteModal" value="Hapus" />
+                                }
+                            </td>
+
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </body>
+}
+@if (HasLogin)
+{
+    <div>
+        <input type="button" data-toggle="modal" data-target="#taskModal" class="btn btn-primary" value="Masukan StreamRawData Baru" @onclick="(() => InitializeitemObject())" />
+    </div>
+}
+<ConfirmDialog OnClick="@Delete" />
+<StreamRawDataDetail @ref="detail" TaskObject=@itemObject DataChanged="@DataChanged">
+    <CustomHeader>@customHeader</CustomHeader>
+</StreamRawDataDetail>
+
+@code {
+    bool HasLogin = false;
+    StreamRawDataDetail detail;
+    AquaCulture.Web.Data.StreamRawDataService service;
+    string customHeader = string.Empty;
+    List<StreamRawData> DataStreamRawData;
+    StreamRawData itemObject = new StreamRawData();
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    string UserName;
+
+    async Task DownloadFile(string Url)
+    {
+        if (!string.IsNullOrEmpty(Url))
+        {
+            NavMgr.NavigateTo(Url, true);
+        }
+        else
+        {
+            toastService.ShowError("Url kosong atau tidak valid.");
+        }
+
+    }
+
+
+    AquaCulture.Web.Data.UserProfileService Userservice;
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (Userservice == null) Userservice = new  UserProfileService();
+        var user = (await authenticationStateTask).User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            UserName = user.Identity.Name;
+            HasLogin = Userservice.GetUserRole(UserName)==Roles.Admin;
+        }
+    
+        if (service == null) service = new StreamRawDataService();
+
+        DataStreamRawData = service.GetAllData();
+
+
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (DataStreamRawData != null && DataStreamRawData.Count > 0)
+        {
+
+            await jsRuntime.InvokeAsync<object>("TestDataTablesAdd", "#gridData");
+        }
+        if (firstRender)
+        {
+            
+        }
+    }
+
+    private void InitializeitemObject()
+    {
+
+        itemObject = new StreamRawData();
+      
+
+        //detail.DocumentUrl = "";
+
+        //itemObject.Id = -1;
+
+        customHeader = "Masukan StreamRawData Baru";
+    }
+    private async void DataChanged()
+    {
+        DataStreamRawData = service.GetAllData();
+        StateHasChanged();
+    }
+
+    private void PrepareForEdit(StreamRawData item)
+    {
+        customHeader = "Ubah Data StreamRawData";
+        itemObject = item;
+        //detail.DocumentUrl = item.DocumentUrl;
+    }
+    private void PrepareForDelete(StreamRawData item)
+    {
+        itemObject = item;
+    }
+    private async Task Delete()
+    {
+        var task = service.DeleteData(itemObject.Id);
+        await jsRuntime.InvokeAsync<object>("CloseModal", "confirmDeleteModal");
+        DataStreamRawData = service.GetAllData();
+        itemObject = new StreamRawData() { Id = -1 };
+    }
+
+    private async System.Threading.Tasks.Task applyPager(string TableName)
+    {
+        await jsRuntime.InvokeAsync<object>("applyPager", TableName);
+    }
+
+}

@@ -1,0 +1,96 @@
+﻿@inherits LayoutComponentBase
+@using Blazored.Toast.Configuration
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+@inject NavigationManager NavMgr
+@inject IJSRuntime jsRuntime
+<PageTitle>AquaCulture.Web</PageTitle>
+<AuthControl></AuthControl>
+
+<div class="nav-fixed">
+    <TopNavBar></TopNavBar>
+    <div id="layoutSidenav">
+        <div id="layoutSidenav_nav">
+            <SideMenu></SideMenu>
+        </div>
+        <div id="layoutSidenav_content">
+            <main>
+                @Body
+            </main>
+            <footer class="footer-admin mt-auto footer-light">
+                <div class="container-xl px-4">
+                    <div class="row">
+                        <div class="col-md-6 small">Copyright &copy; @AppConstants.AppName @(DateTime.Now.Year)</div>
+                        <div class="col-md-6 text-md-end small">
+                            <a href="#!">Privacy Policy</a>
+                            &middot;
+                            <a href="#!">Terms &amp; Conditions</a>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+</div>
+
+<!-- Logout Modal-->
+<div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Anda ingin keluar?</h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">Pilih "Keluar" jika Anda ingin mengakhiri sesi.</div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">Batal</button>
+                <a class="btn btn-primary" data-dismiss="modal" href="" @onclick="Keluar">Keluar</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<BlazoredToasts Position="ToastPosition.BottomRight"
+                Timeout="10"
+                SuccessClass="success-toast-override"
+                SuccessIconClass="fa fa-thumbs-up"
+                ErrorIconClass="fa fa-bug" />
+
+@code{
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    async Task Keluar()
+    {
+        NavMgr.NavigateTo($"/logout",true);
+        //await localStorage.SetItemAsync(AppConstants.NameKey, "");
+        //NavMgr.NavigateTo($"/login");
+    }
+    UserProfileService Userservice;
+    string Nama = "Saya";
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (Userservice == null) Userservice = new UserProfileService();
+        var user = (await authenticationStateTask).User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            var UserName = user.Identity.Name;
+            Nama = Userservice.GetUserByEmail(UserName)?.FullName;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            //await jsRuntime.InvokeAsync<object>("LoadSBJS");
+        }
+
+
+
+    }
+
+}

@@ -1,0 +1,249 @@
+﻿@page "/master/UserProfile"
+
+@inject IJSRuntime jsRuntime
+@inject NavigationManager NavMgr
+@namespace AquaCulture.Web.Pages.Master
+@inject IToastService toastService
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+@using System.IO
+<h1>Data Anggota UB</h1>
+
+<p>Gunakan halaman ini untuk mengatur data anggota UB.</p>
+
+@if (HasLogin)
+{
+    <div class="row">
+        <div class="col col-12">
+            <div class="form-group">
+                <label for="nim">Upload Data Anggota</label>
+                <b><a href="/template/UserProfileTemplate.xlsx">Download template data anggota</a></b>
+                <div class="alert alert-warning"> pilih dokumen lalu tunggu sampai dokumen selesai di upload.</div>
+                <BlazorInputFile.InputFile OnChange="HandleFileSelected" />
+            </div>
+        </div>
+
+    </div>
+}
+
+<div class="row">
+    <div class="col col-12">
+        <div class="form-group">
+            <label for="export">Export Data Anggota</label>
+            <div class="alert alert-success"> data akan di export dalam bentuk excel file.</div>
+            <button class="btn btn-success mt-1 mb-1" @onclick="Export">Export</button>
+
+        </div>
+    </div>
+</div>
+
+@if (DataUserProfile == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <body onbeforeunload="TestDataTablesRemove('#gridData')">
+        <div class="table-responsive">
+            <table id="gridData" name="gridData" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Nama</th>
+                        <th>Telepon</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Alamat</th>
+                        <th>Foto</th>
+
+                        <th>Actions</th>
+                    </tr>
+
+                </thead>
+                <tbody>
+                    @foreach (var item in DataUserProfile)
+                    {
+                        <tr>
+                            <td>@item.FullName</td>
+                            <td>@item.Phone</td>
+                            <td>@item.Email</td>
+                            <td>@(item.Aktif?"Aktif":"Tidak Aktif")</td>
+                            <td>@item.Alamat</td>
+                            <td>
+                                @if (string.IsNullOrEmpty(item.PicUrl))
+                                {
+                                    <p>Tidak ada foto</p>
+                                }
+                                else
+                                {
+                                    <img style="width: 150px; height: 150px;object-fit: cover;" src="@item?.PicUrl?" alt="foto" />
+
+                                }
+                            </td>
+                            <td>
+
+                                @if (HasLogin)
+                                {
+                                    <input type="button" class="btn btn-primary btn-sm mt-1" @onclick="(() => PrepareForEdit(item))" data-toggle="modal" data-target="#taskModal" value="Ubah" />
+                                }
+                                @if (CurrentRole == Roles.Admin)
+                                {
+                                    <input type="button" class="btn btn-danger btn-sm mt-1" @onclick="(() => PrepareForDelete(item))" data-toggle="modal" data-target="#confirmDeleteModal" value="Hapus" />
+                                }
+                            </td>
+
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </body>
+}
+@if (HasLogin)
+{
+    <div>
+        <input type="button" data-toggle="modal" data-target="#taskModal" class="btn btn-primary" value="Tambah Anggota" @onclick="(() => InitializeitemObject())" />
+    </div>
+}
+
+<ConfirmDialog OnClick="@Delete" />
+<UserProfileDetail @ref="detail" TaskObject=@itemObject DataChanged="@DataChanged">
+    <CustomHeader>@customHeader</CustomHeader>
+</UserProfileDetail>
+
+@code {
+    bool HasLogin = false;
+    UserProfileDetail detail;
+    UserProfileService service;
+    string customHeader = string.Empty;
+    List<UserProfile> DataUserProfile;
+    UserProfile itemObject = new UserProfile();
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    string UserName;
+    Roles CurrentRole;
+
+    async Task HandleFileSelected(IFileListEntry[] files)
+    {
+        var file = files.FirstOrDefault();
+        if (file != null)
+        {
+            // Just load into .NET memory to show it can be done
+            // Alternatively it could be saved to disk, or parsed in memory, or similar
+
+            var ms = new MemoryStream();
+            await file.Data.CopyToAsync(ms);
+            //var bytes = ImageHelper.FixedSize(ms, 300, 300, false);
+            //string newName = $"dokumen_{DateTime.Now.ToString("dd_MM_yyyy")}_{Path.GetFileNameWithoutExtension(file.Name)}{Path.GetExtension(file.Name)}";
+            var bytes = ms.ToArray();
+            ms.Dispose();
+            var tempFile = Path.GetTempFileName() + ".xlsx";
+
+            File.WriteAllBytes(tempFile, bytes);
+
+            var data = UserProfileService.ReadExcel(tempFile);
+            if (data == null)
+                toastService.ShowError("Ada kesalahan pada data", "Gagal Upload");
+            else
+            {
+                /*
+                var hasil = service.ImportData(data);
+                if (hasil.IsSucceed)
+                {
+                    RefreshData();
+                    toastService.ShowSuccess("Data berhasil di import", "Berhasil");
+
+                }                    
+                else
+                {
+                    toastService.ShowError($"Gagal import data: {hasil.Message}", "Gagal");
+                }*/
+            }
+            StateHasChanged();
+        }
+    }
+
+    async Task Export()
+    {
+        try
+        {
+            var bytes = service.ExportToExcel();
+            await FileUtil.SaveAs(jsRuntime, "UserProfile.xlsx", bytes);
+        }
+        catch (Exception ex)
+        {
+            toastService.ShowError(ex.Message);
+        }
+    }
+    UserProfileService Userservice;
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (Userservice == null) Userservice = new UserProfileService();
+        var user = (await authenticationStateTask).User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            UserName = user.Identity.Name;
+            CurrentRole = Userservice.GetUserRole(UserName);
+            HasLogin = CurrentRole != Roles.User;
+        }
+
+        if (service == null) service = new UserProfileService();
+
+
+        RefreshData();
+
+    }
+
+    void RefreshData()
+    {
+        DataUserProfile = service.GetAllData();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (DataUserProfile != null && DataUserProfile.Count > 0)
+        {
+
+            await jsRuntime.InvokeAsync<object>("TestDataTablesAdd", "#gridData");
+        }
+
+    }
+
+    private void InitializeitemObject()
+    {
+
+        itemObject = new UserProfile();
+
+
+
+        customHeader = "Tambah Anggota";
+    }
+    private async void DataChanged()
+    {
+        RefreshData();
+        StateHasChanged();
+    }
+
+    private void PrepareForEdit(UserProfile item)
+    {
+        customHeader = "Ubah Data Anggota";
+        itemObject = item;
+        //detail.DocumentUrl = item.DocumentUrl;
+    }
+    private void PrepareForDelete(UserProfile item)
+    {
+        itemObject = item;
+    }
+    private async Task Delete()
+    {
+        var task = service.DeleteData(itemObject.Id);
+        await jsRuntime.InvokeAsync<object>("CloseModal", "confirmDeleteModal");
+        RefreshData();
+        itemObject = new UserProfile() { Id = -1 };
+    }
+
+    private async System.Threading.Tasks.Task applyPager(string TableName)
+    {
+        await jsRuntime.InvokeAsync<object>("applyPager", TableName);
+    }
+
+}

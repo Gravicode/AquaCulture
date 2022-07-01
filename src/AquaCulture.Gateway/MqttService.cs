@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AquaCulture.Models;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Text;
@@ -85,7 +86,7 @@ namespace AquaCulture.Gateway
         {
             Console.WriteLine($"ID -> {DeviceId}");
             return Task.Factory.StartNew(() => {
-                var action = new DeviceTwin() { DeviceID = DeviceId,  Coils= Coils, Registers = Registers};
+                var action = new DeviceTwin() { DeviceId = DeviceId,  Coils= Coils, Registers = Registers};
 
                 SendCommand(JsonSerializer.Serialize(action));
             });
@@ -97,10 +98,5 @@ namespace AquaCulture.Gateway
 
     }
 
-    public class DeviceTwin
-    {
-        public string DeviceID { get; set; }
-        public bool[] Coils { get; set; }
-        public int[] Registers { get; set; }
-    }
+  
 }

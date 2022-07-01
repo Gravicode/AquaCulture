@@ -15,4 +15,8 @@
     <PackageReference Include="System.Text.Json" Version="6.0.5" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\AquaCulture.Models\AquaCulture.Models.csproj" />
+  </ItemGroup>
+
 </Project>

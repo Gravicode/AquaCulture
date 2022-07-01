@@ -1,0 +1,38 @@
+﻿@typeparam TItem
+@inject IJSRuntime jsRuntime
+
+<table id="@TableName" name="@TableName" class="table table-striped w-auto">
+    <thead>
+        <tr role="row" class="even">
+            @TableHeader
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Items)
+        {
+            <tr role="row">
+                @RowTemplate(item)
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    [Parameter]
+    public string TableName { get; set; } = "gridData";
+    
+    [Parameter]
+    public RenderFragment TableHeader { get; set; }
+    [Parameter]
+    public RenderFragment<TItem> RowTemplate { get; set; }
+    [Parameter]
+    public IReadOnlyList<TItem> Items { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await jsRuntime.InvokeVoidAsync("TestDataTablesAdd", "#"+TableName);
+        }
+    }
+}
