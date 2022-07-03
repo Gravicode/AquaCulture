@@ -1,0 +1,171 @@
+﻿@page "/master/Device"
+
+@inject IJSRuntime jsRuntime
+@inject NavigationManager NavMgr
+@inject IToastService toastService
+@inject UserProfileService Userservice
+@inject DeviceService service
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+
+
+@using System.IO
+<h1>Daftar Device</h1>
+
+<p>Gunakan halaman ini untuk melihat info Device.</p>
+
+@if (DataDevice == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <body onbeforeunload="TestDataTablesRemove('#gridData')">
+        <div class="table-responsive">
+           <table id="gridData" name="gridData" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Tanggal Pasang</th>
+                        <th>DeviceId</th>
+                        <th>Nama</th>
+                        <th>Lokasi</th>
+                        <th>Keterangan</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+
+                </thead>
+                <tbody>
+                    @foreach (var item in DataDevice)
+                    {
+                        <tr>
+                           
+                             <td>@item.TanggalPasang?.ToString("dd/MMM/yyyy HH:mm")</td>
+                            <td>@item.DeviceId</td>
+                            <td>@item.Nama</td>
+                            <td>@item.Lokasi</td>
+                            <td>@item.Keterangan</td>
+                            <td>@item.Status</td>
+                            <td>
+                                @if (HasLogin)
+                                {
+                                    <input type="button" class="btn btn-primary btn-sm mt-1" @onclick="(() => PrepareForEdit(item))" data-toggle="modal" data-target="#taskModal" value="Ubah" />
+                                    <input type="button" class="btn btn-danger btn-sm mt-1" @onclick="(() => PrepareForDelete(item))" data-toggle="modal" data-target="#confirmDeleteModal" value="Hapus" />
+                                }
+                            </td>
+
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </body>
+}
+@if (HasLogin)
+{
+    <div>
+        <input type="button" data-toggle="modal" data-target="#taskModal" class="btn btn-primary" value="Masukan Device Baru" @onclick="(() => InitializeitemObject())" />
+    </div>
+}
+<ConfirmDialog OnClick="@Delete" />
+<DeviceDetail @ref="detail" TaskObject=@itemObject DataChanged="@DataChanged">
+    <CustomHeader>@customHeader</CustomHeader>
+</DeviceDetail>
+
+@code {
+    bool HasLogin = false;
+    DeviceDetail detail;
+    
+    string customHeader = string.Empty;
+    List<Device> DataDevice;
+    Device itemObject = new Device();
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    string UserName;
+
+    async Task DownloadFile(string Url)
+    {
+        if (!string.IsNullOrEmpty(Url))
+        {
+            NavMgr.NavigateTo(Url, true);
+        }
+        else
+        {
+            toastService.ShowError("Url kosong atau tidak valid.");
+        }
+
+    }
+
+
+    
+    protected override async Task OnInitializedAsync()
+    {
+
+        var user = (await authenticationStateTask).User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            UserName = user.Identity.Name;
+            HasLogin = await Userservice.GetUserRole(UserName)==Roles.Admin;
+        }
+    
+       
+
+        DataDevice = await service.GetAllData();
+
+
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (DataDevice != null && DataDevice.Count > 0)
+        {
+
+            await jsRuntime.InvokeAsync<object>("TestDataTablesAdd", "#gridData");
+        }
+        if (firstRender)
+        {
+            
+        }
+    }
+
+    private void InitializeitemObject()
+    {
+
+        itemObject = new Device();
+      
+
+        //detail.DocumentUrl = "";
+
+        //itemObject.Id = -1;
+
+        customHeader = "Masukan Device Baru";
+    }
+    private async void DataChanged()
+    {
+        DataDevice = await service.GetAllData();
+        StateHasChanged();
+    }
+
+    private void PrepareForEdit(Device item)
+    {
+        customHeader = "Ubah Data Device";
+        itemObject = item;
+        //detail.DocumentUrl = item.DocumentUrl;
+    }
+    private void PrepareForDelete(Device item)
+    {
+        itemObject = item;
+    }
+    private async Task Delete()
+    {
+        var task = await service.DeleteData(itemObject.Id);
+        await jsRuntime.InvokeAsync<object>("CloseModal", "confirmDeleteModal");
+        DataDevice = await service.GetAllData();
+        itemObject = new Device() { Id = -1 };
+    }
+
+    private async System.Threading.Tasks.Task applyPager(string TableName)
+    {
+        await jsRuntime.InvokeAsync<object>("applyPager", TableName);
+    }
+
+}

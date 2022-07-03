@@ -1,0 +1,62 @@
+﻿@using Microsoft.JSInterop
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+@inject IJSRuntime jsRuntime
+    <!-- Nav Item - Pages Collapse Menu -->
+<li class="nav-item">
+    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
+       aria-expanded="true" aria-controls="collapseTwo">
+        <i class="fas fa-fw fa-cog"></i>
+        <span>Master Data</span>
+    </a>
+    <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+        <div class="bg-white py-2 collapse-inner rounded">
+            <h6 class="collapse-header">Sering Diakses:</h6>
+            <a class="collapse-item" href="/">Beranda</a>
+            <a class="collapse-item" href="/master/Gateway">Gateway</a>
+            <a class="collapse-item" href="/master/Device">Device</a>
+            <a class="collapse-item" href="/master/StreamRawData">Stream Raw Data</a>
+        </div>
+    </div>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseThree"
+       aria-expanded="true" aria-controls="collapseThree">
+        <i class="fas fa-fw fa-cog"></i>
+        <span>Reports</span>
+    </a>
+    <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordionSidebar">
+        <div class="bg-white py-2 collapse-inner rounded">
+            <h6 class="collapse-header">Sering Diakses:</h6>
+           
+            <a class="collapse-item" href="/report/LaporanStatistik">Statistik Sensor</a>
+        </div>
+    </div>
+</li>
+
+@code {
+    bool collapseNavMenu = true;
+    bool HasLogin = true;
+    string NavMenuCssClass => (collapseNavMenu ? "collapse" : "");
+    string UserName { set; get; }
+    void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+           
+
+        }
+
+        //await jsRuntime.InvokeAsync<object>("setMenuStyle");
+    }
+}

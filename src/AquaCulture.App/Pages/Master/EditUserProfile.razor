@@ -1,0 +1,124 @@
+﻿@page "/master/user-profile"
+
+@inject IJSRuntime jsRuntime
+@using AquaCulture.Tools
+@inject NavigationManager NavMgr
+@inject IToastService toastService
+@inject UserProfileService service
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+
+@using AquaCulture.Web.Pages.Common
+
+<div class="fw-table w-75">
+    <div class="row fw-tableHeader mx-1">
+        <h5 class="pt-1 mb-0">Profil Saya</h5>
+        <div class="fw-table-header-actions">
+        </div>
+    </div>
+    <div class="row mb-4 mx-0">
+        <div class="col-lg-12 mt-4">
+            <div class="form-group">
+                <label for="fullname"><b>Nama Lengkap</b></label>
+                <input @bind="DataUser.FullName" type="text" class="form-control" id="txtNama" placeholder="Nama">
+            </div>
+            <div class="form-group">
+                <label for="phone"><b>Telepon</b></label>
+                <input @bind="DataUser.Phone" type="text" class="form-control" id="txtNoHp" placeholder="No Hp">
+            </div>
+
+            <div class="form-group">
+                <label for="alamat"><b>Alamat</b></label>
+                <textarea @bind="DataUser.Alamat" class="form-control" id="txtAlamat" placeholder="Alamat"></textarea>
+            </div>
+
+           
+
+            <div class="form-group">
+                <label for="psw"><b>Password</b></label>
+                <input type="password" @bind="DataUser.Password" class="form-control" id="txtPassword" placeholder="Ketik untuk ganti password">
+            </div>
+            <div class="form-group">
+                <label for="psw-repeat"><b>Ulang Password</b></label>
+                <input type="password" @bind="RetypePass" class="form-control" id="txtPassword" placeholder="Ketik ulang password">
+            </div>
+            <button @onclick="Simpan" class="btn btn-primary btn-block btn-lg">Simpan Perubahan</button>
+            <button @onclick="Kembali" class="btn btn-primary btn-block btn-lg">Kembali</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    UserProfile DataUser = new UserProfile();
+    
+    string RetypePass;
+    string ErrorMsg = string.Empty;
+    bool RegisterSuccess = false;
+    Encryption enc;
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    string UserName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        enc = new Encryption();
+        var user = (await authenticationStateTask).User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            UserName = user.Identity.Name;
+            DataUser = await service.GetItemByEmail(UserName);
+            //DataUser.Password = enc.Decrypt(DataUser.Password);
+        }
+
+        
+    }
+    async Task Simpan()
+    {
+        ErrorMsg = "";
+
+
+        if (string.IsNullOrEmpty(DataUser.Password))
+        {
+            ErrorMsg += "Tolong di isi password. ";
+
+        }
+        if (string.IsNullOrEmpty(DataUser.Phone))
+        {
+            ErrorMsg += "Tolong di isi no hp. ";
+
+        }
+        if (string.IsNullOrEmpty(DataUser.FullName))
+        {
+            ErrorMsg += "Tolong di isi nama lengkap. ";
+
+        }
+        if (string.IsNullOrEmpty(DataUser.Alamat))
+        {
+            ErrorMsg += "Tolong di isi alamat. ";
+
+        }
+        if (DataUser.Password != RetypePass)
+        {
+            ErrorMsg += "Password tidak sesuai dengan ulang password. ";
+
+        }
+
+        if (ErrorMsg.Length > 0)
+        {
+            toastService.ShowWarning(ErrorMsg, "Perhatian");
+            return;
+        }
+
+        DataUser.Email = DataUser.Username;
+        DataUser.Password = enc.Encrypt(DataUser.Password);
+        if (await service.UpdateData(DataUser))
+        {
+            toastService.ShowSuccess("Profile Anda sudah berhasil di update. Terima Kasih", "Info");
+        }
+    }
+
+    void Kembali()
+    {
+        NavMgr.NavigateTo("/");
+    }
+}

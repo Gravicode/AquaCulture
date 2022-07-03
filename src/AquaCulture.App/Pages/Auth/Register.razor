@@ -1,0 +1,150 @@
+﻿@layout NoAuthLayout
+@using AquaCulture.Tools
+@inject NavigationManager NavMgr
+@page "/auth/register"
+
+@inject IToastService toastService
+@inject UserProfileService svc
+@if (RegisterSuccess)
+{
+
+<div class="alert alert-success">Akun berhasil dibuat, silakan <a href="/auth/login">Masuk</a>.</div>
+}
+else
+{
+
+<div class="col-md-7 text-center mr-lg-5 mb-5">
+    <img src="assets/img/homebg.png" alt="home" class="img-fluid">
+</div>
+<div class="col-md-3 text-left">
+    <h6>Daftar untuk bergabung</h6>
+    <div class="my-4">
+        <div class="form-group">
+            <label for="fullname"><b>Nama Lengkap</b></label>
+            <input type="text" @bind="DataUser.FullName" class="form-control" id="txtName" placeholder="Nama Lengkap">
+        </div>
+        <div class="form-group">
+            <label for="phone"><b>Telepon</b></label>
+            <input type="text" class="form-control" @bind="DataUser.Phone" id="txtPhone" placeholder="No Hp">
+        </div>
+        <div class="form-group">
+            <label for="email"><b>Email</b></label>
+            <input type="email" @bind="DataUser.Username" class="form-control" id="txtEmail" placeholder="Email">
+        </div>
+        <div class="form-group">
+            <label for="txtAddress"><b>Alamat</b></label>
+            <textarea @bind="DataUser.Alamat" class="form-control" id="txtAddress" placeholder="Alamat"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="psw"><b>Password</b></label>
+            <input type="password" @bind="DataUser.Password" class="form-control" id="txtPassword" placeholder="Password">
+        </div>
+        <div class="form-group">
+            <label for="psw-repeat"><b>Ulang Password</b></label>
+            <input type="password" @bind="RetypePass" class="form-control" id="txtPassword" placeholder="Ulang Password">
+        </div>
+         <div class="form-group">
+                        <img src="@CaptchaImage" style="text-align:center;margin-bottom:5px;">
+                        <button @onclick="GenerateCaptcha" class="btn btn-success mb-1">Ganti</button>
+                        <input @bind="TypedCaptcha" class="form-control" id="myText" type="text" placeholder="ketik captcha" required >
+         </div>
+        <button @onclick="DaftarUser" class="btn btn-primary btn-block btn-lg">Daftar</button>
+        <button @onclick="Kembali" type="button" class="btn btn-info btn-block btn-lg">Kembali ke Login</button>
+    </div>
+</div>
+}
+
+@code {
+    public string CaptchaImage { get; set; }
+    public string Answer { get; set; }
+    public string TypedCaptcha { get; set; }
+
+    UserProfile DataUser = new UserProfile();
+    string RetypePass;
+    string ErrorMsg = string.Empty;
+    bool RegisterSuccess = false;
+
+    void GenerateCaptcha()
+    {
+        Random oRandom = new Random();
+        int iNumber = oRandom.Next(1000, 9999);
+        Answer = iNumber.ToString();
+        var temp = CaptchaGenerator.GetCaptcha(Answer, 158, 70);
+        string base64String = Convert.ToBase64String(temp, 0, temp.Length);
+        CaptchaImage = "data:image/png;base64," + base64String;
+    }
+    async Task Kembali()
+    {
+        NavMgr.NavigateTo("/auth/login");
+    }
+    protected override async Task OnInitializedAsync()
+    {  
+        if (string.IsNullOrEmpty(CaptchaImage))
+            GenerateCaptcha();
+    }
+    async Task DaftarUser()
+    {
+        ErrorMsg = "";
+        if (string.IsNullOrEmpty(TypedCaptcha))
+        {
+            ErrorMsg += "Tolong isi Captcha. ";
+        }
+        if (Answer != TypedCaptcha)
+        {
+            ErrorMsg += "Captcha tidak valid. ";
+        }
+        if (string.IsNullOrEmpty(DataUser.Username))
+        {
+            ErrorMsg += "Tolong di isi email. ";
+
+        }
+        if (string.IsNullOrEmpty(DataUser.Password))
+        {
+            ErrorMsg += "Tolong di isi password. ";
+
+        }
+        if (string.IsNullOrEmpty(DataUser.Phone))
+        {
+            ErrorMsg += "Tolong di isi no hp. ";
+
+        }
+        if (string.IsNullOrEmpty(DataUser.FullName))
+        {
+            ErrorMsg += "Tolong di isi nama lengkap. ";
+
+        }
+        if (string.IsNullOrEmpty(DataUser.Alamat))
+        {
+            ErrorMsg += "Tolong di isi alamat. ";
+
+        }
+        if (DataUser.Password != RetypePass)
+        {
+            ErrorMsg += "Password tidak sesuai dengan ulang password. ";
+
+        }
+        if (await svc.IsUserExists(DataUser.Username))
+        {
+            ErrorMsg += "User sudah terdaftar sebelumnya, gunakan email lain. ";
+
+        }
+
+        if (ErrorMsg.Length > 0)
+        {
+            toastService.ShowWarning(ErrorMsg, "Perhatian");
+            return;
+        }
+        var enc = new Encryption();
+        DataUser.Email = DataUser.Username;
+        DataUser.Role = Roles.User;
+        DataUser.Password = enc.Encrypt(DataUser.Password);
+        if (await svc.InsertData(DataUser))
+        {
+            var msg = "Anda telah terdaftar di Aqua Culture, Terima Kasih";
+            await SmsService.SendSms(msg, DataUser.Phone);
+            await MailService.PostmarkSendEmail("Telah Teregister di Aqua Culture",msg,DataUser.Email);
+            RegisterSuccess = true;
+            StateHasChanged();
+        }
+    }
+}

@@ -1,9 +1,81 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using ProtoBuf.Grpc;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.Serialization;
+using System.ServiceModel;
 
 namespace AquaCulture.Models
 {
+    #region auth
+    [DataContract]
+    public class AuthenticationModel
+    {
+        [DataMember(Order = 1)]
+        public string ApiKey { get; set; }
+    }
+    [DataContract]
+    public class AuthenticationUserModel
+    {
+        [DataMember(Order = 1)]
+        public string Username { get; set; }
+        [DataMember(Order = 2)]
+        public string Password { get; set; }
+    }
+    [DataContract]
+    public class AuthenticatedUserModel
+    {
+        [DataMember(Order = 1)]
+        public string Username { get; set; }
+        [DataMember(Order = 2)]
+        public string AccessToken { get; set; }
+        [DataMember(Order = 3)]
+        public string TokenType { get; set; }
+        [DataMember(Order = 4)]
+        public DateTime? ExpiredDate { get; set; }
+    }
+    #endregion
+    #region GRPC
+    [ServiceContract]
+    public interface IAuth
+    {
+        [OperationContract]
+        Task<AuthenticatedUserModel> AuthenticateWithUsername(AuthenticationUserModel data, CallContext context = default);
+
+        [OperationContract]
+        Task<AuthenticatedUserModel> AuthenticateWithApiKey(AuthenticationModel data, CallContext context = default);
+    }
+    [ServiceContract]
+    public interface IDevice : ICrudGrpc<Device>
+    {
+
+    }
+    [ServiceContract]
+    public interface IGateway : ICrudGrpc<Gateway>
+    {
+
+    }
+    [ServiceContract]
+    public interface IStreamRawData : ICrudGrpc<StreamRawData>
+    {
+
+    }
+
+    [ServiceContract]
+    public interface IUserProfile : ICrudGrpc<UserProfile>
+    {
+        [OperationContract]
+        Task<UserProfile> GetItemByEmail(InputCls input, CallContext context = default);
+
+        [OperationContract]
+        Task<UserProfile> GetItemByPhone(InputCls input, CallContext context = default);
+
+        [OperationContract]
+        Task<OutputCls> IsUserExists(InputCls input, CallContext context = default);
+
+        [OperationContract]
+        Task<OutputCls> GetUserRole(InputCls input, CallContext context = default);
+    }
+    #endregion
     #region orleans
     public interface IGatewayGrain : Orleans.IGrainWithStringKey
     {
@@ -50,6 +122,24 @@ namespace AquaCulture.Models
         public string Message { get; set; }
         [DataMember(Order = 3)]
         public string Data { get; set; }
+    }
+    [ServiceContract]
+    public interface ICrudGrpc<T> where T : class
+    {
+        [OperationContract]
+        Task<OutputCls> InsertData(T data, CallContext context = default);
+        [OperationContract]
+        Task<OutputCls> UpdateData(T data, CallContext context = default);
+        [OperationContract]
+        Task<List<T>> GetAllData(CallContext context = default);
+        [OperationContract]
+        Task<T> GetDataById(InputCls Id, CallContext context = default);
+        [OperationContract]
+        Task<OutputCls> DeleteData(InputCls Id, CallContext context = default);
+        [OperationContract]
+        Task<OutputCls> GetLastId(CallContext context = default);
+        [OperationContract]
+        Task<List<T>> FindByKeyword(string Keyword, CallContext context = default);
     }
     #endregion
     #region database
